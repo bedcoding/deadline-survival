@@ -1,0 +1,97 @@
+{
+  "_comment": "밸런싱 상수 전부. 코드에 숫자를 박지 않는다. 기획서 §3~§5 대응.",
+
+  "player": {
+    "hp": 3,
+    "sight": 4,
+    "bottles": 3,
+    "bagLarge": 1,
+    "bagSmall": 2
+  },
+
+  "noise": {
+    "walk": 2,
+    "run": 3,
+    "vault": 3,
+    "door": 1,
+    "throwImpact": 3,
+    "glass": 4,
+    "wait": 0,
+    "struggle": 4,
+    "doorEdgeCost": 3,
+    "_comment": "좀비가 듣는 조건: dijkstraDist <= value + (hearing - 3). 걷기 2는 2칸까지 퍼진다."
+  },
+
+  "zombies": {
+    "walker": {
+      "sight": 5,
+      "nearSight": 2,
+      "coneCos": 0.64,
+      "hearing": 3,
+      "speed": 1,
+      "investigateTurns": 2,
+      "searchTurns": 2
+    },
+    "listener": {
+      "sight": 1,
+      "nearSight": 1,
+      "coneCos": 0.64,
+      "hearing": 6,
+      "speed": 1,
+      "investigateTurns": 2,
+      "searchTurns": 2,
+      "_comment": "소리에 반응한 뒤 원위치로 복귀하지 않고 도착 지점에서 새 순찰을 시작한다"
+    },
+    "shadow": {
+      "sight": 7,
+      "nearSight": 2,
+      "coneCos": 0.48,
+      "hearing": 5,
+      "speed": 1.18,
+      "investigateTurns": 3,
+      "searchTurns": 4,
+      "_comment": "플레이어의 흔적을 오래 기억하는 이번 수직 슬라이스의 추적자"
+    }
+  },
+
+  "threat": {
+    "loudAction": 1,
+    "veryLoudAction": 2,
+    "duskLingerPerTurn": 1,
+    "spottedPenalty": 2,
+    "decoyRelief": -1,
+    "_comment": "발각 +2를 먼저 확정하고 미끼 -1은 그 위에서만 적용한다"
+  },
+
+  "grab": {
+    "adjacentToGrab": 1,
+    "adjacentToKill": 3,
+    "struggleTurns": 1,
+    "hpLossOnMultiGrab": 1
+  },
+
+  "combat": {
+    "enemyHp": 6,
+    "headDamage": 3,
+    "torsoDamage": 2,
+    "limbDamage": 1,
+    "biteDamage": 1,
+    "lungeDamage": 1,
+    "fleeStunMs": 1800,
+    "fleeNoise": 4,
+    "radioNoise": 6,
+    "motionMs": 760,
+    "defenseWindowMs": 1500,
+    "parryWindowStart": 0.3,
+    "parryWindowEnd": 0.7,
+    "parryDamage": 1,
+    "guardDamageReduction": 1,
+    "_comment": "모든 부위 공격은 공용 HP를 깎는다. 적 공격 예고 중 Space를 누르면 방어하며, 30~70% 구간의 패링은 공격을 무효화하고 1 피해로 반격한다."
+  },
+
+  "gate": {
+    "inputDensityTarget": 0.4,
+    "idleRunTarget": 0.18,
+    "randomClearTarget": 0.03
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "deadline-survival",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "실시간 격자 잠입·1:1 전투 생존 게임 프로토타입",
+  "scripts": {
+    "dev": "next dev -p 3838",
+    "build": "next build",
+    "check": "tsc --noEmit && npm run contentcheck",
+    "contentcheck": "node scripts/check-content-boundary.mjs",
+    "rttest": "node -r ./tests/os-user-shim.cjs --import tsx tests/rttest.ts"
+  },
+  "dependencies": {
+    "next": "^15.5.23",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
