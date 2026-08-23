@@ -371,7 +371,7 @@ export default function GameClient({ map, balance, onExitToMenu }: { map: MapDef
   const breathMessage = state.player.calmFeedback === 'success'
     ? '숨을 조금 되찾았다'
     : state.player.calmFeedback === 'gasp' || breathLocked
-      ? '숨이 터졌다 · SPACE를 놓아라'
+      ? '숨이 터졌다. SPACE를 놓아라'
       : state.player.holdingBreath
         ? '버튼을 눌러 더 버텨라'
         : hiddenThreat
@@ -385,7 +385,7 @@ export default function GameClient({ map, balance, onExitToMenu }: { map: MapDef
     <main className={`game-shell ${chasing ? 'is-chased' : ''} ${shadowVisible ? 'shadow-visible' : ''} ${shadowChasing ? 'shadow-chasing' : ''} ${inCombat ? 'is-in-combat' : ''}`} data-frame={frame}>
       <header className="masthead">
         <div>
-          <p className="eyebrow">마감 감염 01 · 사옥 지하 원고 보관실</p>
+          <p className="eyebrow">마감 감염 01</p>
           <h1>컷 밖의 밤</h1>
         </div>
         <div className="header-objective">
@@ -405,7 +405,7 @@ export default function GameClient({ map, balance, onExitToMenu }: { map: MapDef
               <span>{inCombat ? combat?.enemyKind === 'shadow' ? '버린 콘티와 미완성 선택이 앞을 막았다.' : '원고를 받기 전에는 보내줄 생각이 없다.' : shadowChasing ? '버린 콘티로 만들어진 검은 내가 지나온 길을 밟는다.' : shadowVisible ? '원고 선반 끝에서 같은 얼굴이 이쪽을 보고 있다.' : chasing ? '“작가님, 잠깐만요.” 마감에 감염된 편집팀이 달려온다.' : '꺼지지 않은 업무폰에서 수정 요청이 반복된다.'}</span>
               <div>
                 {inCombat ? <b className="combat-signal">교전 중</b> : chasing > 0 && <b className="chase-signal">추격 중</b>}
-                <i>{combat ? `${combatEnemy?.displayName} · ${combat.round}턴` : state.player.hidden ? state.player.holdingBreath ? '숨 참는 중 · 경계 감소' : '숨는 중 · 인접 시 경계 상승' : running ? '달리는 중 · 소음 큼' : canHide ? 'C · 원고 선반 뒤에 숨기' : '걷는 중 · 소음 낮음'}</i>
+                <i>{combat ? `${combatEnemy?.displayName} ${combat.round}턴` : state.player.hidden ? state.player.holdingBreath ? '숨을 참아 경계가 감소하는 중' : '숨어 있으며 인접하면 경계 상승' : running ? '달리는 중이라 소음이 큼' : canHide ? 'C로 원고 선반 뒤에 숨기' : '걷는 중이라 소음이 낮음'}</i>
               </div>
             </div>
             <GameStage map={map} state={state} balance={balance} obscured={inCombat} />
@@ -464,7 +464,7 @@ export default function GameClient({ map, balance, onExitToMenu }: { map: MapDef
                   <i aria-label={`은신 의심 ${alert}%`}><b style={{ width: `${alert}%` }} /></i>
                 </div>
               ) : (
-                <strong className={inCombat || chasing ? 'danger-text' : ''}>{combat ? `다음 · ${combat.intent === 'grab' ? '붙잡기' : combat.intent === 'bite' ? '물어뜯기' : '돌진'}` : chasing ? `${chasing}체 추격` : `${alert}% 경계`}</strong>
+                <strong className={inCombat || chasing ? 'danger-text' : ''}>{combat ? `다음 행동 ${combat.intent === 'grab' ? '붙잡기' : combat.intent === 'bite' ? '물어뜯기' : '돌진'}` : chasing ? `${chasing}체 추격` : `${alert}% 경계`}</strong>
               )}
             </div>
             <div><span>{inCombat ? '거리' : '근접'}</span><strong>{combat ? (combat.distance === 'open' ? '벌어짐' : '밀착') : `${nearby}체`}</strong></div>
@@ -553,18 +553,18 @@ export default function GameClient({ map, balance, onExitToMenu }: { map: MapDef
                 <div><kbd>SPACE</kbd><strong>상호작용 / 숨 참기</strong><p>은신 중 길게 누르면 경계를 낮춘다. 화면의 호흡 연장 버튼은 횟수 제한 없이 남은 숨을 조금씩 회복한다.</p></div>
                 <div><kbd>C</kbd><strong>원고 선반 뒤에 숨기</strong><p>선반 바로 옆에서 숨는다. 깨어 있는 편집팀의 정면에서는 실패하며, 움직이면 즉시 해제된다.</p></div>
                 <div><kbd>Q</kbd><strong>업무폰 설치</strong><p>잠시 뒤 알림을 쏟아내 감염된 편집팀을 유인한다.</p></div>
-                <div><kbd>1 — 4</kbd><strong>1:1 전투</strong><p>공격·밀치기·업무폰·도주를 고른다. 공격에서는 다시 1~4로 부위를 정한다.</p></div>
+                <div><kbd>1~4</kbd><strong>1:1 전투</strong><p>공격, 밀치기, 업무폰, 도주 중 하나를 고른다. 공격을 선택하면 다시 1~4로 부위를 정한다.</p></div>
               </div>
             )}
 
             {panel === 'system' && (
               <div className="system-menu-layout">
-                <p className="system-menu-index">NIGHT 01 · IN PROGRESS</p>
+                <p className="system-menu-index">NIGHT 01 IN PROGRESS</p>
                 <h3>원고 보관실을 나가겠습니까?</h3>
                 <p>현재 프로토타입은 진행 중인 위치를 저장하지 않는다. 메인 메뉴로 돌아오면 이번 회차가 종료된다.</p>
                 <div>
                   <button type="button" onClick={closePanel}>계속 플레이</button>
-                  <button type="button" className="danger" onClick={onExitToMenu}>회차 중단 · 메인 메뉴</button>
+                  <button type="button" className="danger" onClick={onExitToMenu}>회차 중단하고 메인 메뉴로</button>
                 </div>
               </div>
             )}

@@ -11,9 +11,9 @@ type MenuDialog = null | 'archive' | 'settings';
 
 const CONTROL_NOTES = [
   ['WASD', '걷기'],
-  ['SHIFT', '달리기 · 소음 증가'],
+  ['SHIFT', '달리면 소음 증가'],
   ['C', '선반 뒤에 숨기'],
-  ['SPACE', '상호작용 · 숨 참기'],
+  ['SPACE', '상호작용 또는 숨 참기'],
 ] as const;
 
 export default function ExperienceClient({ map, balance }: { map: MapDef; balance: Balance }) {
@@ -45,6 +45,11 @@ export default function ExperienceClient({ map, balance }: { map: MapDef; balanc
     setScreen('prologue');
   };
 
+  const skipPrologue = () => {
+    setDialog(null);
+    setScreen('briefing');
+  };
+
   const returnToMenu = () => {
     setDialog(null);
     setScreen('menu');
@@ -64,14 +69,19 @@ export default function ExperienceClient({ map, balance }: { map: MapDef; balanc
     return (
       <main className={`experience-root narrative-screen tone-${frame.tone} ${reducedMotion ? 'reduce-motion' : ''}`}>
         <header className="narrative-header">
-          <button type="button" onClick={returnToMenu}>← 메인 메뉴</button>
-          <span>{content.edition}</span>
-          <b>{String(prologueIndex + 1).padStart(2, '0')} / {String(content.prologue.length).padStart(2, '0')}</b>
+          <button type="button" className="narrative-back" onClick={returnToMenu}>← 메인 메뉴</button>
+          <div className="story-identity" aria-label={`${content.episode.code} 메인 스토리`}>
+            <span>MAIN STORY</span>
+            <strong><small>{content.episode.code}</small><em>{content.episode.title}</em></strong>
+          </div>
+          <div className="narrative-actions">
+            <b aria-label={`${content.prologue.length}개 중 ${prologueIndex + 1}번째 컷`}>{String(prologueIndex + 1).padStart(2, '0')} / {String(content.prologue.length).padStart(2, '0')}</b>
+          </div>
         </header>
 
         <section className="prologue-spread" key={frame.cut}>
           <div className="prologue-copy">
-            <p><span>{frame.cut}</span>{frame.time}</p>
+            <p className="story-scene-meta"><span>{frame.cut}</span>{frame.time}</p>
             <h1>{frame.title}</h1>
             <div className="correction-line" aria-hidden="true" />
             <p className="prologue-body">{frame.body}</p>
@@ -84,13 +94,16 @@ export default function ExperienceClient({ map, balance }: { map: MapDef; balanc
         </section>
 
         <footer className="narrative-footer">
-          <div className="story-progress" aria-label={`프롤로그 ${prologueIndex + 1}번째 컷`}>
-            {content.prologue.map((item, index) => <i key={item.cut} className={index <= prologueIndex ? 'active' : ''} />)}
+          <div className="story-progress-wrap">
+            <div className="story-progress" aria-label={`프롤로그 ${prologueIndex + 1}번째 컷`}>
+              {content.prologue.map((item, index) => <i key={item.cut} className={index <= prologueIndex ? 'active' : ''} />)}
+            </div>
           </div>
-          <div>
+          <div className="story-footer-actions">
             {prologueIndex > 0 && <button type="button" className="text-button" onClick={() => setPrologueIndex((index) => index - 1)}>이전 컷</button>}
+            {!isLast && <button type="button" className="footer-skip-button" onClick={skipPrologue}>스토리 건너뛰기</button>}
             <button type="button" className="ink-button" onClick={() => isLast ? setScreen('briefing') : setPrologueIndex((index) => index + 1)}>
-              <span>{isLast ? '임무 확인' : '다음 컷'}</span><b>→</b>
+              <span>{isLast ? '임무 브리핑' : '다음 컷'}</span><b>→</b>
             </button>
           </div>
         </footer>
@@ -109,7 +122,7 @@ export default function ExperienceClient({ map, balance }: { map: MapDef; balanc
 
         <section className="briefing-layout">
           <article className="briefing-paper">
-            <p className="briefing-code">{content.episode.code} · NIGHT SHIFT</p>
+            <p className="briefing-code"><span>{content.episode.code}</span><span>NIGHT SHIFT</span></p>
             <h1>{content.episode.title}</h1>
             <p className="briefing-location">⌖ {content.episode.location}</p>
             <p className="briefing-summary">{content.episode.summary}</p>
@@ -165,12 +178,12 @@ export default function ExperienceClient({ map, balance }: { map: MapDef; balanc
 
           <nav className="main-menu" aria-label="메인 메뉴">
             <button type="button" className="primary" onClick={beginPrologue}><b>01</b><span><strong>새 회차 시작</strong><small>{content.episode.title}</small></span><i>→</i></button>
-            <button type="button" disabled><b>02</b><span><strong>이어하기</strong><small>저장된 진행 기록 없음</small></span><i>—</i></button>
+            <button type="button" disabled><b>02</b><span><strong>이어하기</strong><small>저장된 진행 기록 없음</small></span><i>×</i></button>
             <button type="button" onClick={() => setDialog('archive')}><b>03</b><span><strong>기록 보관함</strong><small>회차와 완성된 컷 확인</small></span><i>→</i></button>
             <button type="button" onClick={() => setDialog('settings')}><b>04</b><span><strong>설정</strong><small>연출과 화면 동작</small></span><i>→</i></button>
           </nav>
 
-          <button type="button" className="skip-prologue" onClick={() => setScreen('briefing')}>프롤로그 건너뛰기</button>
+          <button type="button" className="skip-prologue" onClick={skipPrologue}>프롤로그 건너뛰기</button>
         </div>
       </section>
 
@@ -193,7 +206,7 @@ export default function ExperienceClient({ map, balance }: { map: MapDef; balanc
               </div>
             ) : (
               <div className="settings-list">
-                <div><span><b id="menu-dialog-title">화면 움직임</b><small>추격·경고 연출의 흔들림을 조절한다.</small></span><button type="button" onClick={updateMotion}>{reducedMotion ? '절제' : '기본'}</button></div>
+                <div><span><b id="menu-dialog-title">화면 움직임</b><small>추격과 경고 연출의 흔들림을 조절한다.</small></span><button type="button" onClick={updateMotion}>{reducedMotion ? '절제' : '기본'}</button></div>
                 <div className="setting-disabled"><span><b>효과음</b><small>사운드 추가 후 활성화된다.</small></span><button type="button" disabled>준비 중</button></div>
                 <p>조작키는 게임 안의 <kbd>H</kbd> 메뉴에서 언제든 확인할 수 있다.</p>
               </div>

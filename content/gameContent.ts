@@ -51,7 +51,7 @@ export const GAME_CONTENT = {
   experience: {
     title: '컷 밖의 밤',
     subtitle: '야근 전염병 생존 기록',
-    edition: 'DEADLINE ARCHIVE · PROOF 01',
+    edition: 'DEADLINE ARCHIVE',
     tagline: '완성하지 못한 컷은\n밤이 되면 작가를 찾아온다.',
     episode: {
       code: 'EPISODE 01',

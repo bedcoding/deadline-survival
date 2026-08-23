@@ -73,10 +73,10 @@ export default function CombatStage({
 
       <header className="combat-header">
         <div className="enemy-card">
-          <p>{combat.enemyKind === 'shadow' ? 'DELETED CUT' : 'ENCOUNTER'} · ROUND {combat.round.toString().padStart(2, '0')}</p>
+          <p>{combat.enemyKind === 'shadow' ? 'DELETED CUT' : 'ENCOUNTER'} ROUND {combat.round.toString().padStart(2, '0')}</p>
           <div>
             <h2>{enemy.displayName}</h2>
-            <span>{combat.armsBroken ? '팔 손상' : '팔 정상'} · {combat.legsBroken ? '다리 손상' : '다리 정상'}</span>
+            <span>{combat.armsBroken ? '팔 손상' : '팔 정상'}　{combat.legsBroken ? '다리 손상' : '다리 정상'}</span>
           </div>
           <div className="enemy-durability" aria-label={`적 체력 ${combat.enemyHp}/${combat.enemyMaxHp}`}>
             <i style={{ '--value': `${(combat.enemyHp / combat.enemyMaxHp) * 100}%` } as React.CSSProperties}><b>HP</b><span /></i>
@@ -106,9 +106,9 @@ export default function CombatStage({
           {targeting && (
             <div className="body-target-layer" aria-label="공격 부위 선택">
               {targetButton('head', '피해 3')}
-              {targetButton('arms', combat.armsBroken ? '손상됨 · 피해 1' : '피해 1 · 붙잡기 봉쇄')}
+              {targetButton('arms', combat.armsBroken ? '손상되어 피해 1' : '피해 1로 붙잡기 봉쇄')}
               {targetButton('torso', '피해 2')}
-              {targetButton('legs', combat.legsBroken ? '손상됨 · 피해 1' : '피해 1 · 도주 확보')}
+              {targetButton('legs', combat.legsBroken ? '손상되어 피해 1' : '피해 1로 도주 확보')}
             </div>
           )}
         </figure>
@@ -125,7 +125,7 @@ export default function CombatStage({
           </div>
           <div className="combat-events">
             {combat.events.slice(-2).map((event, index) => (
-              <p key={`${combat.actionSerial}-${index}`} className={`tone-${event.tone}`}><span>{event.side === 'enemy' ? '적' : event.side === 'player' ? '나' : '·'}</span>{event.text}</p>
+              <p key={`${combat.actionSerial}-${index}`} className={`tone-${event.tone}`}><span>{event.side === 'enemy' ? '적' : event.side === 'player' ? '나' : '기록'}</span>{event.text}</p>
             ))}
           </div>
         </div>
@@ -135,7 +135,7 @@ export default function CombatStage({
             <div className="defense-copy">
               <span>REACTION</span>
               <strong>{inParryWindow ? '지금, 받아쳐라' : '공격을 읽어라'}</strong>
-              <p>바깥 구간은 방어 · 중앙의 노란 구간은 패링과 반격</p>
+              <p>바깥 구간에서는 방어한다. 중앙의 노란 구간에서는 패링해 반격한다.</p>
             </div>
             <div
               className="defense-timing"
@@ -156,7 +156,7 @@ export default function CombatStage({
         ) : targeting ? (
           <div className="target-command-panel">
             <div><span>공격 부위</span><strong>효과는 확정이다</strong></div>
-            <p>모든 공격이 공용 HP를 깎고, 팔·다리는 적 행동까지 봉쇄한다.</p>
+            <p>모든 공격이 공용 HP를 깎는다. 팔과 다리를 공격하면 적 행동도 봉쇄한다.</p>
             <button type="button" onClick={onCancelTarget} disabled={locked}><kbd>ESC</kbd> 취소</button>
           </div>
         ) : (
@@ -168,7 +168,7 @@ export default function CombatStage({
               <kbd>2</kbd><b>밀치기</b><span>{combat.restrained ? '손아귀를 푼다' : '도주할 틈을 만든다'}</span>
             </button>
             <button type="button" onClick={() => onCommand('radio')} disabled={locked || radioCount <= 0}>
-              <kbd>3</kbd><b>업무폰</b><span>{radioCount > 0 ? `알림으로 이탈 · ${radioCount}개` : '남은 업무폰 없음'}</span>
+              <kbd>3</kbd><b>업무폰</b><span>{radioCount > 0 ? `알림으로 이탈 (${radioCount}개)` : '남은 업무폰 없음'}</span>
             </button>
             <button type="button" className={fleeReady ? 'is-ready' : ''} onClick={() => onCommand('flee')} disabled={locked || combat.restrained}>
               <kbd>4</kbd><b>도주</b><span>{combat.restrained ? '움직일 수 없다' : fleeReady ? '지금은 빠져나갈 수 있다' : '먼저 틈을 만들어야 한다'}</span>
