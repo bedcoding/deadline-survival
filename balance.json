@@ -89,6 +89,33 @@
     "_comment": "모든 부위 공격은 공용 HP를 깎는다. 적 공격 예고 중 Space를 누르면 방어하며, 30~70% 구간의 패링은 공격을 무효화하고 1 피해로 반격한다."
   },
 
+  "night": {
+    "durationMs": 45000,
+    "waveMs": 15000,
+    "maxBarrier": 100,
+    "coreHp": 3,
+    "baseMaterials": 8,
+    "repairAmount": 28,
+    "repairCooldownMs": 650,
+    "decoyMs": 5500,
+    "sealMs": 7000,
+    "breachResetBarrier": 38,
+    "breachGraceMs": 1800,
+    "activeLaneDamageMul": 0.7,
+    "pressureDamagePerSecond": 0.065,
+    "basePressure": 15,
+    "threatPressure": 0.28,
+    "wavePressure": 8,
+    "baseThreat": 16,
+    "noiseThreat": 5,
+    "spottedThreat": 12,
+    "wokeThreat": 4,
+    "bittenThreat": 10,
+    "lingerStartMs": 45000,
+    "lingerThreatPerSecond": 0.18,
+    "_comment": "낮의 소음과 발각이 밤의 압력으로 이어진다. 정면 대응 중인 통로는 피해가 70%로 감소한다."
+  },
+
   "gate": {
     "inputDensityTarget": 0.4,
     "idleRunTarget": 0.18,

@@ -9,7 +9,8 @@
     "build": "next build",
     "check": "tsc --noEmit && npm run contentcheck",
     "contentcheck": "node scripts/check-content-boundary.mjs",
-    "rttest": "node -r ./tests/os-user-shim.cjs --import tsx tests/rttest.ts"
+    "rttest": "node -r ./tests/os-user-shim.cjs --import tsx tests/rttest.ts",
+    "nighttest": "node -r ./tests/os-user-shim.cjs --import tsx tests/nighttest.ts"
   },
   "dependencies": {
     "next": "^15.5.23",

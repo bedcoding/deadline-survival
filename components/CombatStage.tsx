@@ -39,6 +39,22 @@ export default function CombatStage({
   const fleeReady = canFlee(combat);
   const locked = busy || combat.awaitingDefense || combat.outcome !== null;
   const motion = `motion-${combat.lastMotion}${combat.enemyResponded ? ' enemy-responded' : ''}`;
+  const impactState = combat.lastDefense === 'miss'
+    ? 'took-damage'
+    : combat.lastDefense === 'guard'
+      ? 'blocked-hit'
+      : '';
+  const exchangeState = combat.lastDefense === 'miss'
+    ? 'exchange-enemy-hit'
+    : combat.lastDefense === 'guard'
+      ? 'exchange-guard'
+      : combat.lastDefense === 'parry'
+        ? 'exchange-parry'
+        : combat.lastMotion === 'strike'
+          ? 'exchange-player-hit'
+          : '';
+  const impactTarget = combat.lastTarget ? `target-${combat.lastTarget}` : 'target-torso';
+  const fatalImpact = combat.lastDefense === 'miss' && combat.outcome === 'dead' ? 'fatal-impact' : '';
   const enemy = enemyContent(combat.enemyKind);
   const defensePercent = Math.max(0, Math.min(100, defenseProgress * 100));
   const parryStartPercent = parryWindowStart * 100;
@@ -61,7 +77,7 @@ export default function CombatStage({
 
   return (
     <section
-      className={`combat-stage enemy-kind-${combat.enemyKind} ${motion} ${targeting ? 'is-targeting' : ''} ${combat.awaitingDefense ? 'is-awaiting-defense' : ''} ${combat.lastDefense ? `defense-${combat.lastDefense}` : ''}`}
+      className={`combat-stage combat-focus enemy-kind-${combat.enemyKind} ${motion} ${exchangeState} ${impactState} ${fatalImpact} ${targeting ? 'is-targeting' : ''} ${combat.awaitingDefense && defenseActive ? 'is-awaiting-defense' : ''} ${combat.awaitingDefense && !defenseActive ? 'is-preparing-defense' : ''} ${combat.lastDefense ? `defense-${combat.lastDefense}` : ''}`}
       style={{ '--defense-window': `${defenseWindowMs}ms` } as React.CSSProperties}
       aria-label={`${enemy.displayName}과의 전투`}
     >
@@ -83,15 +99,17 @@ export default function CombatStage({
             <strong>{combat.enemyHp} / {combat.enemyMaxHp}</strong>
           </div>
         </div>
-        <div className={`intent-card intent-${combat.intent} ${combat.awaitingDefense ? 'is-imminent' : ''}`}>
-          <span>{combat.awaitingDefense ? '공격 개시' : '다음 행동'}</span>
+        <div className={`intent-card intent-${combat.intent} ${combat.awaitingDefense && defenseActive ? 'is-imminent' : ''}`}>
+          <span>{combat.awaitingDefense && defenseActive ? '공격 개시' : '다음 행동'}</span>
           <strong>{intent.label}</strong>
           <p>{intent.detail}</p>
         </div>
       </header>
 
-      <div className="battle-exchange" key={combat.actionSerial}>
-        <div className="combat-cut" aria-hidden="true" />
+      <div className={`battle-exchange ${exchangeState} impact-${impactTarget}`} key={combat.actionSerial}>
+        <div className="attack-trail" aria-hidden="true" />
+        <div className="combat-focus-shade" aria-hidden="true" />
+        <div className="combat-focus-ink" aria-hidden="true" />
         <figure className="combat-figure survivor-figure">
           <img src={GAME_CONTENT.player.combatSprite} alt={`${enemy.displayName}과 마주 선 ${GAME_CONTENT.player.displayName}의 뒷모습`} />
           <figcaption>
@@ -113,7 +131,10 @@ export default function CombatStage({
           )}
         </figure>
 
-        <div className="impact-flash" aria-hidden="true" />
+        <div className="hit-spark" aria-hidden="true" />
+        <div className="impact-ring" aria-hidden="true" />
+        <div className="guard-deflect-slash" aria-hidden="true" />
+        <div className="parry-cross" aria-hidden="true" />
       </div>
 
       <footer className="combat-hud">

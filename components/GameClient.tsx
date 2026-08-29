@@ -2,18 +2,24 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import CombatStage from './CombatStage';
+import EncounterTransition from './EncounterTransition';
+import type { EncounterTransitionPhase } from './EncounterTransition';
 import GameStage from './GameStage';
+import NightDefenseStage from './NightDefenseStage';
 import { chebyshev } from '@/engine/geom';
 import { resolveCombatAction, resolveCombatDefense } from '@/engine/combat';
 import type { CombatAction, CombatPart, DefenseResult } from '@/engine/combat';
 import { canHideAt, DEFAULT_CFG, finishCombat, newRt, stepRt } from '@/engine/rt';
 import type { RtInput, RtState } from '@/engine/rt';
+import { applyNightAction, deriveNightThreat, newNightDefense, selectNightLane, stepNightDefense } from '@/engine/night';
+import type { NightAction, NightDefenseState, NightLaneId } from '@/engine/night';
 import type { Balance } from '@/engine/balance';
 import type { Facing, MapDef } from '@/engine/types';
 import { enemyContent, GAME_CONTENT } from '@/content/gameContent';
 
 type Panel = 'bag' | 'journal' | 'help' | 'system' | null;
 type CombatCommand = Exclude<CombatAction['type'], 'attack'> | 'attack';
+type CampaignPhase = 'field' | 'night';
 
 const DIRECTIONS: Record<string, Facing> = {
   KeyW: 'N', KeyA: 'W', KeyS: 'S', KeyD: 'E',
@@ -31,8 +37,9 @@ const ITEM_LABELS: Record<string, string> = {
 
 const createSeed = () => ((Date.now() ^ Math.floor(Math.random() * 0xffffffff)) >>> 0) || 1;
 
-export default function GameClient({ map, balance, onExitToMenu }: { map: MapDef; balance: Balance; onExitToMenu?: () => void }) {
+export default function GameClient({ map, balance, reducedMotion = false, onExitToMenu }: { map: MapDef; balance: Balance; reducedMotion?: boolean; onExitToMenu?: () => void }) {
   const stateRef = useRef<RtState>(newRt(map, balance, DEFAULT_CFG, createSeed()));
+  const nightRef = useRef<NightDefenseState | null>(null);
   const keysRef = useRef(new Set<string>());
   const calmClickRef = useRef(false);
   const combatTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -40,6 +47,7 @@ export default function GameClient({ map, balance, onExitToMenu }: { map: MapDef
   const defenseStartedAtRef = useRef<number | null>(null);
   const defenseResolverRef = useRef<(result: DefenseResult) => void>(() => undefined);
   const combatBusyRef = useRef(false);
+  const encounterTimersRef = useRef<Array<ReturnType<typeof setTimeout>>>([]);
   const [frame, setFrame] = useState(0);
   const [manualPaused, setManualPaused] = useState(false);
   const [panel, setPanel] = useState<Panel>(null);
@@ -48,7 +56,12 @@ export default function GameClient({ map, balance, onExitToMenu }: { map: MapDef
   const [targeting, setTargeting] = useState(false);
   const [defenseStartedAt, setDefenseStartedAt] = useState<number | null>(null);
   const [defenseProgress, setDefenseProgress] = useState(0);
-  const paused = manualPaused || panel !== null || stateRef.current.combat !== null;
+  const [campaignPhase, setCampaignPhase] = useState<CampaignPhase>('field');
+  const [day, setDay] = useState(1);
+  const [showMissionIntro, setShowMissionIntro] = useState(true);
+  const [encounterTransition, setEncounterTransition] = useState<EncounterTransitionPhase | null>(null);
+  const [encounterOrigin, setEncounterOrigin] = useState({ x: 50, y: 50 });
+  const paused = manualPaused || panel !== null || stateRef.current.combat !== null || showMissionIntro;
 
   const releaseControls = useCallback(() => {
     keysRef.current.clear();
@@ -57,10 +70,10 @@ export default function GameClient({ map, balance, onExitToMenu }: { map: MapDef
   }, []);
 
   const openPanel = useCallback((next: Exclude<Panel, null>) => {
-    if (stateRef.current.combat || stateRef.current.over) return;
+    if (stateRef.current.combat || stateRef.current.over || showMissionIntro) return;
     releaseControls();
     setPanel((current) => current === next ? null : next);
-  }, [releaseControls]);
+  }, [releaseControls, showMissionIntro]);
 
   const closePanel = useCallback(() => {
     releaseControls();
@@ -75,6 +88,36 @@ export default function GameClient({ map, balance, onExitToMenu }: { map: MapDef
     setDefenseProgress(0);
   }, []);
 
+  const clearEncounterTimers = useCallback(() => {
+    encounterTimersRef.current.forEach((timer) => clearTimeout(timer));
+    encounterTimersRef.current = [];
+  }, []);
+
+  const startEncounterTransition = useCallback((playerTile: number, enemyTile: number) => {
+    clearEncounterTimers();
+    releaseControls();
+    const playerX = (playerTile % map.w) + 0.5;
+    const playerY = Math.floor(playerTile / map.w) + 0.5;
+    const enemyX = (enemyTile % map.w) + 0.5;
+    const enemyY = Math.floor(enemyTile / map.w) + 0.5;
+    setEncounterOrigin({
+      x: (((playerX + enemyX) / 2) / map.w) * 100,
+      y: (((playerY + enemyY) / 2) / map.h) * 100,
+    });
+    setEncounterTransition('covering');
+
+    const shouldReduceMotion = reducedMotion || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const coverDuration = shouldReduceMotion ? 60 : 440;
+    const totalDuration = shouldReduceMotion ? 120 : 900;
+    encounterTimersRef.current = [
+      setTimeout(() => setEncounterTransition('revealing'), coverDuration),
+      setTimeout(() => {
+        setEncounterTransition(null);
+        encounterTimersRef.current = [];
+      }, totalDuration),
+    ];
+  }, [clearEncounterTimers, map.h, map.w, reducedMotion, releaseControls]);
+
   const finishCombatMotion = useCallback(() => {
     const latest = stateRef.current;
     if (latest.combat?.outcome) finishCombat(map, balance, latest, DEFAULT_CFG);
@@ -88,15 +131,62 @@ export default function GameClient({ map, balance, onExitToMenu }: { map: MapDef
     if (combatTimerRef.current) clearTimeout(combatTimerRef.current);
     combatTimerRef.current = null;
     clearDefenseWindow();
+    clearEncounterTimers();
     combatBusyRef.current = false;
     stateRef.current = newRt(map, balance, DEFAULT_CFG, createSeed());
+    nightRef.current = null;
     releaseControls();
     setManualPaused(false);
     setPanel(null);
     setCombatBusy(false);
     setTargeting(false);
+    setCampaignPhase('field');
+    setDay(1);
+    setShowMissionIntro(true);
+    setEncounterTransition(null);
     setFrame((value) => value + 1);
-  }, [balance, clearDefenseWindow, map, releaseControls]);
+  }, [balance, clearDefenseWindow, clearEncounterTimers, map, releaseControls]);
+
+  const startNight = useCallback(() => {
+    const field = stateRef.current;
+    nightRef.current = newNightDefense({
+      threat: deriveNightThreat(field, balance.night),
+      carried: field.carried,
+      decoys: field.decoysLeft,
+    }, balance.night);
+    releaseControls();
+    setManualPaused(false);
+    setPanel(null);
+    setCampaignPhase('night');
+    setShowMissionIntro(false);
+    setFrame((value) => value + 1);
+  }, [balance.night, releaseControls]);
+
+  const selectDefenseLane = useCallback((laneId: NightLaneId) => {
+    if (!nightRef.current || manualPaused) return;
+    selectNightLane(nightRef.current, laneId);
+    setFrame((value) => value + 1);
+  }, [manualPaused]);
+
+  const useDefenseAction = useCallback((action: NightAction) => {
+    if (!nightRef.current || manualPaused) return;
+    applyNightAction(nightRef.current, action, balance.night);
+    setFrame((value) => value + 1);
+  }, [balance.night, manualPaused]);
+
+  const startNextDay = useCallback(() => {
+    const next = newRt(map, balance, DEFAULT_CFG, createSeed());
+    const previousHp = stateRef.current.player.hp;
+    next.player.hp = Math.max(1, previousHp);
+    stateRef.current = next;
+    nightRef.current = null;
+    releaseControls();
+    setManualPaused(false);
+    setCampaignPhase('field');
+    setDay((value) => value + 1);
+    setShowMissionIntro(true);
+    setFrame((value) => value + 1);
+  }, [balance, map, releaseControls]);
 
   const resolveDefense = useCallback((result: DefenseResult) => {
     const state = stateRef.current;
@@ -156,9 +246,15 @@ export default function GameClient({ map, balance, onExitToMenu }: { map: MapDef
     combatTimerRef.current = null;
 
     if (state.combat.awaitingDefense) {
-      combatBusyRef.current = false;
-      setCombatBusy(false);
-      startDefenseWindow();
+      clearDefenseWindow();
+      combatBusyRef.current = true;
+      setCombatBusy(true);
+      combatTimerRef.current = setTimeout(() => {
+        combatTimerRef.current = null;
+        combatBusyRef.current = false;
+        setCombatBusy(false);
+        startDefenseWindow();
+      }, balance.combat.motionMs);
       return;
     }
 
@@ -190,6 +286,45 @@ export default function GameClient({ map, balance, onExitToMenu }: { map: MapDef
 
   useEffect(() => {
     const keyDown = (event: KeyboardEvent) => {
+      if (showMissionIntro) {
+        event.preventDefault();
+        if (!event.repeat && (event.code === 'Enter' || event.code === 'Space' || event.code === 'Escape')) setShowMissionIntro(false);
+        return;
+      }
+      if (campaignPhase === 'night') {
+        const night = nightRef.current;
+        if (!night || night.over) return;
+        if (event.code === 'Escape' || event.code === 'KeyP') {
+          event.preventDefault();
+          if (!event.repeat) setManualPaused((value) => !value);
+          return;
+        }
+        if (manualPaused || event.repeat) return;
+        const laneKeys: Record<string, NightLaneId> = {
+          KeyA: 'front', ArrowLeft: 'front',
+          KeyS: 'vent', ArrowUp: 'vent',
+          KeyD: 'service', ArrowRight: 'service',
+        };
+        const lane = laneKeys[event.code];
+        if (lane) {
+          event.preventDefault();
+          selectDefenseLane(lane);
+          return;
+        }
+        const actionKeys: Record<string, NightAction> = { Space: 'repair', KeyQ: 'decoy', KeyE: 'seal' };
+        const action = actionKeys[event.code];
+        if (action) {
+          event.preventDefault();
+          useDefenseAction(action);
+        }
+        return;
+      }
+
+      if (encounterTransition) {
+        event.preventDefault();
+        return;
+      }
+
       const combat = stateRef.current.combat;
       if (combat) {
         if (combat.awaitingDefense) {
@@ -269,12 +404,13 @@ export default function GameClient({ map, balance, onExitToMenu }: { map: MapDef
       window.removeEventListener('keyup', keyUp);
       window.removeEventListener('blur', blur);
     };
-  }, [closePanel, handleCombatCommand, handleCombatDefense, handleCombatTarget, manualPaused, openPanel, panel, paused, releaseControls, reset, targeting]);
+  }, [campaignPhase, closePanel, encounterTransition, handleCombatCommand, handleCombatDefense, handleCombatTarget, manualPaused, openPanel, panel, paused, releaseControls, reset, selectDefenseLane, showMissionIntro, targeting, useDefenseAction]);
 
   useEffect(() => () => {
     if (combatTimerRef.current) clearTimeout(combatTimerRef.current);
     if (defenseTimerRef.current) clearTimeout(defenseTimerRef.current);
-  }, []);
+    clearEncounterTimers();
+  }, [clearEncounterTimers]);
 
   useEffect(() => {
     if (defenseStartedAt === null) return;
@@ -290,6 +426,17 @@ export default function GameClient({ map, balance, onExitToMenu }: { map: MapDef
 
   useEffect(() => {
     const scene = new URLSearchParams(window.location.search).get('scene');
+    if (scene === 'night') {
+      const state = stateRef.current;
+      state.carried = ['최종원고', '태블릿배터리'];
+      state.decoysLeft = 2;
+      state.stats.noisyEvents = 3;
+      state.stats.spotted = 1;
+      state.stats.woke = 2;
+      state.over = 'escaped';
+      startNight();
+      return;
+    }
     if (scene !== 'shadow' && scene !== 'editor' && scene !== 'listener') return;
     const state = stateRef.current;
     const enemy = state.zombies.find((zombie) => (
@@ -301,7 +448,7 @@ export default function GameClient({ map, balance, onExitToMenu }: { map: MapDef
     enemy.t = 0;
     enemy.dormant = true;
     setFrame((value) => value + 1);
-  }, []);
+  }, [startNight]);
 
   useEffect(() => {
     let animationFrame = 0;
@@ -316,7 +463,7 @@ export default function GameClient({ map, balance, onExitToMenu }: { map: MapDef
       const state = stateRef.current;
       const keys = keysRef.current;
 
-      if (!paused && !state.over) {
+      if (campaignPhase === 'field' && !paused && !state.over) {
         let direction: Facing | null = null;
         for (const key of keys) if (DIRECTIONS[key]) direction = DIRECTIONS[key];
 
@@ -334,8 +481,15 @@ export default function GameClient({ map, balance, onExitToMenu }: { map: MapDef
         decoyLatch = decoyPressed;
         hideLatch = hidePressed;
         calmClickRef.current = false;
+        const hadCombat = state.combat !== null;
         stepRt(map, balance, state, input, delta, DEFAULT_CFG);
-        setRunning(isRunning && direction !== null);
+        const startedCombat = !hadCombat ? state.combat : null;
+        if (startedCombat) {
+          const enemyTile = state.zombies.find((zombie) => zombie.id === startedCombat.enemyId)?.tile ?? state.player.tile;
+          startEncounterTransition(state.player.tile, enemyTile);
+        } else {
+          setRunning(isRunning && direction !== null);
+        }
       }
 
       if (now - lastPaint > 32) {
@@ -347,13 +501,36 @@ export default function GameClient({ map, balance, onExitToMenu }: { map: MapDef
 
     animationFrame = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(animationFrame);
-  }, [balance, map, paused]);
+  }, [balance, campaignPhase, map, paused, startEncounterTransition]);
+
+  useEffect(() => {
+    if (campaignPhase !== 'night') return;
+    let animationFrame = 0;
+    let lastTime = performance.now();
+    let lastPaint = 0;
+
+    const loop = (now: number) => {
+      const delta = Math.min(100, now - lastTime);
+      lastTime = now;
+      const night = nightRef.current;
+      if (night && !manualPaused && !night.over) stepNightDefense(night, delta, balance.night);
+      if (now - lastPaint > 32) {
+        setFrame((value) => (value + 1) % 1000000);
+        lastPaint = now;
+      }
+      animationFrame = requestAnimationFrame(loop);
+    };
+
+    animationFrame = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(animationFrame);
+  }, [balance.night, campaignPhase, manualPaused]);
 
   const state = stateRef.current;
   const combat = state.combat;
   const combatEnemy = combat ? enemyContent(combat.enemyKind) : null;
   const inCombat = combat !== null;
-  const chasing = inCombat ? 0 : state.zombies.filter((zombie) => zombie.state === 'CHASE').length;
+  const combatPresented = inCombat && encounterTransition !== 'covering';
+  const chasing = combatPresented ? 0 : state.zombies.filter((zombie) => zombie.state === 'CHASE').length;
   const shadowVisible = state.zombies.some((zombie) => zombie.kind === 'shadow' && state.visibleIds.includes(zombie.id));
   const shadowChasing = state.zombies.some((zombie) => zombie.kind === 'shadow' && zombie.state === 'CHASE');
   const nearby = state.zombies.filter((zombie) => chebyshev(map, zombie.tile, state.player.tile) <= 2).length;
@@ -378,19 +555,36 @@ export default function GameClient({ map, balance, onExitToMenu }: { map: MapDef
           ? 'SPACE를 눌러 숨을 참아라'
           : '호흡 회복 중';
   const acquired = new Set(state.carried);
+  const nightThreat = deriveNightThreat(state, balance.night);
   const canHide = canHideAt(map, state);
   const elapsed = `${Math.floor(state.timeMs / 60000).toString().padStart(2, '0')}:${Math.floor((state.timeMs % 60000) / 1000).toString().padStart(2, '0')}`;
 
+  if (campaignPhase === 'night' && nightRef.current) {
+    return (
+      <NightDefenseStage
+        state={nightRef.current}
+        paused={manualPaused}
+        onSelectLane={selectDefenseLane}
+        onAction={useDefenseAction}
+        onTogglePause={() => setManualPaused((value) => !value)}
+        onNextDay={startNextDay}
+        onRestart={reset}
+        onExitToMenu={onExitToMenu}
+      />
+    );
+  }
+
   return (
-    <main className={`game-shell ${chasing ? 'is-chased' : ''} ${shadowVisible ? 'shadow-visible' : ''} ${shadowChasing ? 'shadow-chasing' : ''} ${inCombat ? 'is-in-combat' : ''}`} data-frame={frame}>
+    <main className={`game-shell ${chasing ? 'is-chased' : ''} ${shadowVisible ? 'shadow-visible' : ''} ${shadowChasing ? 'shadow-chasing' : ''} ${combatPresented ? 'is-in-combat' : ''}`} data-frame={frame}>
       <header className="masthead">
         <div>
-          <p className="eyebrow">마감 감염 01</p>
+          <p className="eyebrow">낮 탐색 {day}일차</p>
           <h1>컷 밖의 밤</h1>
         </div>
         <div className="header-objective">
           <span>현재 목표</span>
           <strong>{acquired.has('최종원고') ? '지하 업로드 단말기로 가라' : '손상된 최종 원고를 복구하라'}</strong>
+          <small className="day-threat-meter"><span>귀환 흔적 {nightThreat}</span><i><b style={{ width: `${nightThreat}%` }} /></i></small>
         </div>
         <div className="night-clock" aria-label={`경과 시간 ${elapsed}`}>
           <span>경과</span>
@@ -401,14 +595,34 @@ export default function GameClient({ map, balance, onExitToMenu }: { map: MapDef
       <section className="game-layout">
         <div className="scene-column">
           <div className="scene-frame">
-            <div className={`scene-caption ${chasing ? 'chasing' : ''} ${inCombat ? 'combat-caption' : ''}`}>
-              <span>{inCombat ? combat?.enemyKind === 'shadow' ? '버린 콘티와 미완성 선택이 앞을 막았다.' : '원고를 받기 전에는 보내줄 생각이 없다.' : shadowChasing ? '버린 콘티로 만들어진 검은 내가 지나온 길을 밟는다.' : shadowVisible ? '원고 선반 끝에서 같은 얼굴이 이쪽을 보고 있다.' : chasing ? '“작가님, 잠깐만요.” 마감에 감염된 편집팀이 달려온다.' : '꺼지지 않은 업무폰에서 수정 요청이 반복된다.'}</span>
+            <div className={`scene-caption ${chasing ? 'chasing' : ''} ${combatPresented ? 'combat-caption' : ''}`}>
+              <span>{combatPresented ? combat?.enemyKind === 'shadow' ? '버린 콘티와 미완성 선택이 앞을 막았다.' : '원고를 받기 전에는 보내줄 생각이 없다.' : shadowChasing ? '버린 콘티로 만들어진 검은 내가 지나온 길을 밟는다.' : shadowVisible ? '원고 선반 끝에서 같은 얼굴이 이쪽을 보고 있다.' : chasing ? '“작가님, 잠깐만요.” 마감에 감염된 편집팀이 달려온다.' : '꺼지지 않은 업무폰에서 수정 요청이 반복된다.'}</span>
               <div>
-                {inCombat ? <b className="combat-signal">교전 중</b> : chasing > 0 && <b className="chase-signal">추격 중</b>}
-                <i>{combat ? `${combatEnemy?.displayName} ${combat.round}턴` : state.player.hidden ? state.player.holdingBreath ? '숨을 참아 경계가 감소하는 중' : '숨어 있으며 인접하면 경계 상승' : running ? '달리는 중이라 소음이 큼' : canHide ? 'C로 원고 선반 뒤에 숨기' : '걷는 중이라 소음이 낮음'}</i>
+                {combatPresented ? <b className="combat-signal">교전 중</b> : chasing > 0 && <b className="chase-signal">추격 중</b>}
+                <i>{combatPresented && combat ? `${combatEnemy?.displayName} ${combat.round}턴` : state.player.hidden ? state.player.holdingBreath ? '숨을 참아 경계가 감소하는 중' : '숨어 있으며 인접하면 경계 상승' : running ? '달리는 중이라 소음이 큼' : canHide ? 'C로 원고 선반 뒤에 숨기' : '걷는 중이라 소음이 낮음'}</i>
               </div>
             </div>
-            <GameStage map={map} state={state} balance={balance} obscured={inCombat} />
+            <GameStage map={map} state={state} balance={balance} obscured={combatPresented} />
+            {encounterTransition && combatEnemy && (
+              <EncounterTransition
+                phase={encounterTransition}
+                enemyName={combatEnemy.displayName}
+                originX={encounterOrigin.x}
+                originY={encounterOrigin.y}
+              />
+            )}
+            {showMissionIntro && !state.over && (
+              <section className="mission-start-card" role="dialog" aria-modal="true" aria-labelledby="mission-start-title">
+                <span>탐색 목표</span>
+                <h2 id="mission-start-title">먼저 최종 원고를 찾아라</h2>
+                <ol>
+                  <li><b>1</b><p><strong>오른쪽 위의 붉은 표식</strong><small>표시된 칸을 밟으면 원고를 자동으로 회수한다.</small></p></li>
+                  <li><b>2</b><p><strong>오른쪽 아래 업로드 단말기</strong><small>원고를 얻은 뒤 목적지 화살표가 단말기로 바뀐다.</small></p></li>
+                </ol>
+                <p className="mission-guide-note">화면 위 화살표가 현재 목적지의 방향과 거리를 계속 알려준다.</p>
+                <button type="button" onClick={() => setShowMissionIntro(false)}><span>탐색 시작</span><kbd>ENTER</kbd></button>
+              </section>
+            )}
             {showBreathHud && !inCombat && !state.over && (
               <section className={`breath-hud ${breathHudAtTop ? 'is-top' : 'is-bottom'} ${state.player.holdingBreath ? 'is-ready' : ''} ${breathLocked ? 'is-gasping' : ''}`} aria-label={`남은 숨 ${Math.round(state.player.breath)}퍼센트`}>
                 <header>
@@ -426,13 +640,13 @@ export default function GameClient({ map, balance, onExitToMenu }: { map: MapDef
                 )}
               </section>
             )}
-            {combat && (
+            {combat && combatPresented && (
               <CombatStage
                 combat={combat}
                 maxHp={balance.player.hp}
                 radioCount={state.decoysLeft}
                 targeting={targeting}
-                busy={combatBusy || manualPaused}
+                busy={combatBusy || manualPaused || encounterTransition !== null}
                 defenseActive={defenseStartedAt !== null}
                 defenseProgress={defenseProgress}
                 defenseWindowMs={balance.combat.defenseWindowMs}
@@ -447,15 +661,16 @@ export default function GameClient({ map, balance, onExitToMenu }: { map: MapDef
             {manualPaused && !panel && <div className="pause-card">{inCombat ? '전투 일시 정지' : '숨을 고르는 중'}</div>}
             {state.over && (
               <div className={`result-card ${state.over}`}>
-                <p>{state.over === 'escaped' ? '최종 원고 송고 완료' : '마감에 붙잡혔다'}</p>
-                <button type="button" onClick={reset}>다시 시작</button>
+                <p>{state.over === 'escaped' ? '원고를 확보하고 귀환했다' : '마감에 붙잡혔다'}</p>
+                {state.over === 'escaped' && <small>낮에 남긴 흔적이 밤의 공세가 된다. 현재 위협 {nightThreat}</small>}
+                <button type="button" onClick={state.over === 'escaped' ? startNight : reset}>{state.over === 'escaped' ? '야간 방어 시작' : '다시 시작'}</button>
               </div>
             )}
           </div>
 
           <div className="status-strip">
             <div className="status-objective"><span>목표</span><strong>{acquired.has('최종원고') ? '원고 업로드' : '최종 원고 복구'}</strong></div>
-            <div><span>상태</span><strong className={inCombat || running || state.player.hidden ? 'warn' : ''}>{combat ? `교전 ${combat.round}턴` : state.player.hidden ? state.player.holdingBreath ? '숨 참는 중' : '숨는 중' : running ? '달리기' : canHide ? '숨기 가능' : '걷기'}</strong></div>
+            <div><span>상태</span><strong className={combatPresented || running || state.player.hidden ? 'warn' : ''}>{combatPresented && combat ? `교전 ${combat.round}턴` : state.player.hidden ? state.player.holdingBreath ? '숨 참는 중' : '숨는 중' : running ? '달리기' : canHide ? '숨기 가능' : '걷기'}</strong></div>
             <div className={state.player.hidden ? 'status-stealth-alert' : ''}>
               <span>{state.player.hidden ? '은신 의심' : '위험'}</span>
               {state.player.hidden ? (
@@ -464,10 +679,10 @@ export default function GameClient({ map, balance, onExitToMenu }: { map: MapDef
                   <i aria-label={`은신 의심 ${alert}%`}><b style={{ width: `${alert}%` }} /></i>
                 </div>
               ) : (
-                <strong className={inCombat || chasing ? 'danger-text' : ''}>{combat ? `다음 행동 ${combat.intent === 'grab' ? '붙잡기' : combat.intent === 'bite' ? '물어뜯기' : '돌진'}` : chasing ? `${chasing}체 추격` : `${alert}% 경계`}</strong>
+                <strong className={combatPresented || chasing ? 'danger-text' : ''}>{combatPresented && combat ? `다음 행동 ${combat.intent === 'grab' ? '붙잡기' : combat.intent === 'bite' ? '물어뜯기' : '돌진'}` : chasing ? `${chasing}체 추격` : `${alert}% 경계`}</strong>
               )}
             </div>
-            <div><span>{inCombat ? '거리' : '근접'}</span><strong>{combat ? (combat.distance === 'open' ? '벌어짐' : '밀착') : `${nearby}체`}</strong></div>
+            <div><span>{combatPresented ? '거리' : '근접'}</span><strong>{combatPresented && combat ? (combat.distance === 'open' ? '벌어짐' : '밀착') : `${nearby}체`}</strong></div>
           </div>
         </div>
 
@@ -490,7 +705,7 @@ export default function GameClient({ map, balance, onExitToMenu }: { map: MapDef
               <b>⌂</b><span>메뉴</span><kbd>M</kbd>
             </button>
           </nav>
-          <button type="button" className="rail-pause" onClick={() => { releaseControls(); setManualPaused((value) => !value); }} aria-label={manualPaused ? '게임 계속하기' : '게임 일시정지'}>
+          <button type="button" className="rail-pause" onClick={() => { releaseControls(); setManualPaused((value) => !value); }} aria-label={manualPaused ? '게임 계속하기' : '게임 일시정지'} disabled={encounterTransition !== null}>
             <b>{manualPaused ? '▶' : 'Ⅱ'}</b><span>{manualPaused ? '계속' : '정지'}</span><kbd>ESC</kbd>
           </button>
         </aside>

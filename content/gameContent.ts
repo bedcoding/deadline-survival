@@ -94,14 +94,14 @@ export const GAME_CONTENT = {
   player: {
     displayName: '주인공',
     fieldSprites: {
-      N: '/assets/player-back-clean.png',
-      E: '/assets/player-right-clean.png',
-      S: '/assets/player-front.png',
-      W: '/assets/player-left.png',
+      N: '/assets/player-back-highres-v2.png',
+      E: '/assets/player-right-highres-v2.png',
+      S: '/assets/player-right-highres-v2.png',
+      W: '/assets/player-left-highres-v2.png',
     },
-    titleSprite: '/assets/player-right-clean.png',
-    briefingArtwork: '/assets/player-right-clean.png',
-    combatSprite: '/assets/player-back-clean.png',
+    titleSprite: '/assets/player-right-highres-v2.png',
+    briefingArtwork: '/assets/player-right-highres-v2.png',
+    combatSprite: '/assets/player-back-highres-v2.png',
     bagPortrait: '/assets/player-thinking.png',
   },
   enemies: {

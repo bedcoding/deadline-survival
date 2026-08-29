@@ -26,6 +26,32 @@ export type CombatCfg = {
   guardDamageReduction: number;
 };
 
+export type NightCfg = {
+  durationMs: number;
+  waveMs: number;
+  maxBarrier: number;
+  coreHp: number;
+  baseMaterials: number;
+  repairAmount: number;
+  repairCooldownMs: number;
+  decoyMs: number;
+  sealMs: number;
+  breachResetBarrier: number;
+  breachGraceMs: number;
+  activeLaneDamageMul: number;
+  pressureDamagePerSecond: number;
+  basePressure: number;
+  threatPressure: number;
+  wavePressure: number;
+  baseThreat: number;
+  noiseThreat: number;
+  spottedThreat: number;
+  wokeThreat: number;
+  bittenThreat: number;
+  lingerStartMs: number;
+  lingerThreatPerSecond: number;
+};
+
 export type Balance = {
   player: { hp: number; sight: number; bottles: number; bagLarge: number; bagSmall: number };
   noise: Record<string, number>;
@@ -34,4 +60,5 @@ export type Balance = {
   grab: Record<string, number>;
   gate: Record<string, number>;
   combat: CombatCfg;
+  night: NightCfg;
 };

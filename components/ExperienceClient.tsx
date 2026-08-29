@@ -58,7 +58,7 @@ export default function ExperienceClient({ map, balance }: { map: MapDef; balanc
   if (screen === 'game') {
     return (
       <div className={`experience-root ${reducedMotion ? 'reduce-motion' : ''}`}>
-        <GameClient map={map} balance={balance} onExitToMenu={returnToMenu} />
+        <GameClient map={map} balance={balance} reducedMotion={reducedMotion} onExitToMenu={returnToMenu} />
       </div>
     );
   }
