@@ -1,0 +1,611 @@
+.lab {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  height: 100dvh;
+  min-height: 620px;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: 68px minmax(0, 1fr) 70px;
+  color: #e9e3d3;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(70, 88, 76, .2), transparent 34%),
+    linear-gradient(120deg, #09110f, #030504 72%);
+}
+
+.paperGrid {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  opacity: .18;
+  pointer-events: none;
+  background-image:
+    repeating-linear-gradient(0deg, transparent 0 3px, rgba(255,255,255,.045) 4px),
+    linear-gradient(90deg, transparent 49.9%, rgba(255,255,255,.035) 50%, transparent 50.1%);
+  mix-blend-mode: soft-light;
+}
+
+.lab::after {
+  content: '';
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent 49.6%, rgba(190, 68, 57, .88) 49.8% 50.2%, transparent 50.4%), #020303;
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+
+.isStarting::after { animation: storyLabLaunch .42s cubic-bezier(.72,.01,.24,1) both; }
+
+.header,
+.footer {
+  position: relative;
+  z-index: 50;
+  min-width: 0;
+  margin-inline: clamp(18px, 3vw, 52px);
+  display: grid;
+  align-items: center;
+  border-color: rgba(231, 226, 209, .15);
+}
+
+.header {
+  grid-template-columns: minmax(160px, 1fr) auto minmax(160px, 1fr);
+  border-bottom: 1px solid rgba(231, 226, 209, .15);
+}
+
+.backControl {
+  width: fit-content;
+  min-height: 44px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  border: 0;
+  color: #999e97;
+  background: transparent;
+  font: 700 9px/1 ui-monospace, Consolas, monospace;
+  letter-spacing: .04em;
+  text-decoration: none;
+}
+
+.backControl:hover:not(:disabled) { color: #eee7d7; }
+.backControl:disabled { opacity: .35; }
+
+.identity {
+  min-width: 0;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+}
+
+.identity > span {
+  color: #c95649;
+  font: 850 8px/1 ui-monospace, Consolas, monospace;
+  letter-spacing: .25em;
+}
+
+.identity > strong {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #a9aaa1;
+  font: 700 9px/1 ui-monospace, Consolas, monospace;
+  letter-spacing: .1em;
+}
+
+.identity i { width: 27px; height: 1px; background: #555d57; }
+
+.sampleBadge {
+  justify-self: end;
+  padding: 8px 10px;
+  border: 1px solid rgba(220, 194, 79, .28);
+  color: #c9b657;
+  background: rgba(220, 194, 79, .04);
+  font: 750 8px/1 ui-monospace, Consolas, monospace;
+  letter-spacing: .08em;
+}
+
+.gameMode .sampleBadge { color: #d2bd59; border-color: rgba(210, 189, 89, .34); }
+
+.workspace {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(175px, 245px) minmax(430px, 1fr) minmax(180px, 250px);
+  align-items: center;
+  gap: clamp(18px, 2.5vw, 44px);
+  padding: 14px clamp(24px, 4vw, 70px) 8px;
+}
+
+.gameMode .workspace {
+  grid-template-columns: minmax(0, 1fr);
+  padding: 12px clamp(18px, 4vw, 64px) 8px;
+}
+
+.explanation,
+.deckMap {
+  min-width: 0;
+  color: #8e958d;
+}
+
+.explanation > p,
+.deckMap > p {
+  margin: 0 0 14px;
+  color: #c04f43;
+  font: 850 8px/1 ui-monospace, Consolas, monospace;
+  letter-spacing: .2em;
+}
+
+.explanation h1 {
+  margin: 0;
+  color: #ded8c8;
+  font: 760 clamp(26px, 2.3vw, 40px)/1.12 Georgia, 'Times New Roman', serif;
+  letter-spacing: -.055em;
+  word-break: keep-all;
+}
+
+.rule { width: 58px; height: 3px; margin: 22px 0 19px; background: #bc4a3f; }
+
+.explanation ul { margin: 0; padding: 0; list-style: none; }
+.explanation li { position: relative; margin-top: 10px; padding-left: 15px; font-size: 10px; line-height: 1.45; word-break: keep-all; }
+.explanation li::before { content: ''; position: absolute; left: 0; top: .55em; width: 5px; height: 1px; background: #cdb955; }
+.deckStage {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  display: grid;
+  place-items: center;
+}
+
+.deck {
+  position: relative;
+  width: clamp(310px, 31vw, 408px);
+  height: clamp(445px, 67vh, 570px);
+  max-height: calc(100dvh - 186px);
+  perspective: 1200px;
+}
+
+.card {
+  position: absolute;
+  inset: 0;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: 42px minmax(190px, 52%) minmax(0, 1fr);
+  border: 1px solid rgba(231, 226, 209, .34);
+  color: #e7dfcd;
+  background: #0b1210;
+  box-shadow: 0 28px 65px rgba(0, 0, 0, .58), inset 0 0 0 5px rgba(2, 4, 3, .62);
+  transform-origin: 52% 78%;
+  transition:
+    transform 360ms cubic-bezier(.19,.78,.24,1),
+    opacity 250ms ease,
+    filter 300ms ease,
+    box-shadow 260ms ease;
+  user-select: none;
+  touch-action: pan-y;
+}
+
+.card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 70px rgba(0,0,0,.38);
+}
+
+.tonePaper { --tone: #c5b953; --wash: #26342e; }
+.toneDanger { --tone: #c65346; --wash: #40231f; }
+.toneShadow { --tone: #a23934; --wash: #291312; }
+
+.cardActive {
+  z-index: 30;
+  opacity: 1;
+  cursor: grab;
+  outline: none;
+  transform: translate3d(var(--drag-x, 0), 0, 0) rotate(var(--drag-rotate, 0)) scale(1);
+}
+
+.cardActive:hover { box-shadow: 0 32px 78px rgba(0, 0, 0, .68), 0 0 0 1px rgba(222, 201, 92, .16); }
+.cardActive:focus-visible { outline: 2px solid #d7bf54; outline-offset: 5px; }
+.cardNext { z-index: 20; opacity: .8; filter: brightness(.72); transform: translate3d(20px, 15px, -14px) rotate(2.1deg) scale(.968); }
+.cardAfter { z-index: 10; opacity: .54; filter: brightness(.54); transform: translate3d(-13px, 31px, -28px) rotate(-1.7deg) scale(.935); }
+.cardPast { z-index: 5; opacity: 1; filter: brightness(.32) saturate(.5); transform: translate3d(-128%, 38px, -45px) rotate(-10deg) scale(.72); }
+.isDragging { cursor: grabbing; transition: none; }
+.isLast { cursor: default; }
+
+.cardTopline {
+  min-width: 0;
+  padding: 0 19px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(231, 226, 209, .13);
+  background: rgba(1, 4, 3, .42);
+  font: 800 8px/1 ui-monospace, Consolas, monospace;
+  letter-spacing: .14em;
+}
+
+.cardTopline span { color: var(--tone); }
+.cardTopline b { color: #747b75; font-weight: 700; }
+
+.cardArt {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(231, 226, 209, .13);
+  background: radial-gradient(circle at 50% 45%, var(--wash), #050807 70%);
+}
+
+.cardArt::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent 58%, rgba(3,5,4,.7));
+}
+
+.cardArt img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+  filter: grayscale(.28) saturate(.52) contrast(1.08) brightness(.77);
+  pointer-events: none;
+}
+
+.toneShadow .cardArt img { filter: grayscale(.62) saturate(.34) contrast(1.25) brightness(.62) drop-shadow(0 0 26px rgba(173,53,45,.32)); }
+
+.cardArt > span {
+  position: absolute;
+  z-index: 3;
+  right: 15px;
+  top: 9px;
+  color: rgba(232, 225, 208, .16);
+  font: 800 57px/.9 Georgia, 'Times New Roman', serif;
+}
+
+.cardCopy {
+  position: relative;
+  z-index: 2;
+  min-height: 0;
+  padding: clamp(17px, 2.2vh, 25px) 22px 18px;
+  align-content: start;
+  background: linear-gradient(145deg, #101916, #070b09);
+}
+
+.cardCopy h2 {
+  margin: 0;
+  color: #ece4d2;
+  font: 750 clamp(21px, 2vw, 30px)/1.12 Georgia, 'Times New Roman', serif;
+  letter-spacing: -.045em;
+  word-break: keep-all;
+}
+
+.cardCopy > div { width: 48px; height: 3px; margin: 14px 0 11px; background: var(--tone); }
+.cardCopy > p { margin: 0; color: #9ea39b; font-size: 9px; line-height: 1.58; word-break: keep-all; }
+
+.cardCopy small {
+  margin-top: 12px;
+  padding-top: 9px;
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  gap: 7px;
+  border-top: 1px solid rgba(218, 194, 84, .24);
+  color: #aaa99f;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.cardCopy small b { color: #d3bb55; font-size: 7px; }
+
+.scribbledNext {
+  position: absolute;
+  z-index: 7;
+  right: 20px;
+  bottom: 17px;
+  color: rgba(206, 76, 64, .82);
+  font: 800 20px/1 'Segoe Print', 'Bradley Hand', 'Comic Sans MS', cursive;
+  letter-spacing: -.08em;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, .72);
+  transform: rotate(-7deg);
+  pointer-events: none;
+  transition: color 180ms ease, transform 180ms ease;
+}
+
+.scribbledNext::after {
+  content: '';
+  position: absolute;
+  left: -3px;
+  right: 4px;
+  bottom: -5px;
+  height: 5px;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  transform: rotate(2deg) skewX(-18deg);
+}
+
+.scribbledNext b { margin-left: 3px; color: rgba(221, 193, 75, .78); font-size: 17px; }
+.cardActive:hover .scribbledNext { color: #dc594c; transform: translate(-2px, -1px) rotate(-9deg); }
+
+.nextStamp,
+.previousStamp {
+  position: absolute;
+  z-index: 8;
+  top: 58px;
+  padding: 9px 11px;
+  border: 2px solid currentColor;
+  font: 900 10px/1 ui-monospace, Consolas, monospace;
+  letter-spacing: .14em;
+  pointer-events: none;
+}
+
+.nextStamp { right: 16px; color: #d4bc51; transform: rotate(5deg); }
+.previousStamp { left: 16px; color: #c85648; transform: rotate(-5deg); }
+
+.gestureHint {
+  position: absolute;
+  left: 50%;
+  bottom: 1px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #7f857e;
+  font: 700 8px/1 ui-monospace, Consolas, monospace;
+  letter-spacing: .04em;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.gestureHint span { color: #d0b953; font-size: 15px; }
+
+.deckMap ol { margin: 0; padding: 0; list-style: none; }
+.deckMap li { min-height: 52px; padding: 8px 0; display: grid; grid-template-columns: 28px 1fr; align-items: center; gap: 8px; border-top: 1px solid rgba(231,226,209,.1); opacity: .42; transition: opacity 220ms ease, transform 260ms ease; }
+.deckMap li > span { color: #59605a; font: 800 10px ui-monospace, Consolas, monospace; }
+.deckMap li > div { min-width: 0; display: grid; gap: 4px; }
+.deckMap li b { overflow: hidden; color: #9ca099; font: 750 9px ui-monospace, Consolas, monospace; white-space: nowrap; }
+.deckMap li small { color: #666d67; font-size: 8px; }
+.deckMap li.isCurrent { opacity: 1; transform: translateX(-6px); }
+.deckMap li.isCurrent > span, .deckMap li.isCurrent b { color: #d2bc56; }
+.deckMap li.isRead { opacity: .25; }
+
+.differenceNote { margin-top: 21px; padding: 13px 12px; border-left: 2px solid #b94a3f; background: rgba(185,74,63,.055); }
+.differenceNote b { color: #c6564a; font-size: 8px; }
+.differenceNote p { margin: 7px 0 0; color: #8d928b; font-size: 9px; line-height: 1.55; word-break: keep-all; }
+
+.footer {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  border-top: 1px solid rgba(231, 226, 209, .15);
+}
+
+.status { min-width: 0; display: flex; align-items: center; gap: 11px; }
+.status > span { color: #d0b954; font: 800 13px ui-monospace, Consolas, monospace; }
+.status > div { display: flex; gap: 5px; }
+.status i { width: 32px; height: 3px; background: #2c322e; transition: background 180ms ease; }
+.status i.isOn { background: #bd4c40; }
+.status small { color: #676e68; font: 700 7px ui-monospace, Consolas, monospace; letter-spacing: .06em; }
+
+.gameStart {
+  min-width: 184px;
+  min-height: 48px;
+  padding: 0 17px 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 22px;
+  border: 1px solid rgba(219, 193, 77, .52);
+  color: #ede4ce;
+  background: linear-gradient(100deg, rgba(153, 50, 42, .62), rgba(28, 31, 26, .88));
+  font: 750 12px Georgia, 'Times New Roman', serif;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.gameStart b { color: #dfc553; font: 800 18px/1 ui-monospace, Consolas, monospace; }
+.gameStart:hover { border-color: #dfc553; background: linear-gradient(100deg, rgba(180, 57, 48, .72), rgba(42, 43, 35, .92)); }
+.gameStart:disabled { cursor: default; opacity: .46; }
+.gameStart:focus-visible { outline: 2px solid #d4bd52; outline-offset: 3px; }
+
+.backControl:focus-visible { outline: 2px solid #d4bd52; outline-offset: 3px; }
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.episodeIntro {
+  position: fixed;
+  z-index: 90;
+  inset: 0;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  padding: clamp(28px, 7vw, 96px);
+  color: #eee8da;
+  background: #000;
+  cursor: pointer;
+  opacity: 1;
+  transition: opacity 1000ms cubic-bezier(.16, 1, .3, 1);
+}
+
+.episodeIntro::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 48%, rgba(119, 34, 29, .09), transparent 38%);
+}
+
+.introLeaving {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.episodeIntroCopy {
+  position: relative;
+  width: min(920px, 90vw);
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  transform: translateY(-1vh);
+  transition: transform 1000ms cubic-bezier(.16, 1, .3, 1), filter 1000ms ease;
+  animation: episodeTextRise 2100ms 180ms cubic-bezier(.16, 1, .3, 1) both;
+}
+
+.introLeaving .episodeIntroCopy {
+  animation: none;
+  transform: translateY(-16px);
+  filter: blur(1.5px);
+}
+
+.episodeIntroCopy > p {
+  margin: 0 0 17px;
+  color: #cdb84e;
+  font: 850 clamp(9px, 1vw, 12px)/1 ui-monospace, Consolas, monospace;
+  letter-spacing: .31em;
+}
+
+.episodeIntroCopy h1 {
+  margin: 0;
+  color: #eee8da;
+  font: 760 clamp(38px, 5.5vw, 76px)/1.08 Georgia, 'Times New Roman', serif;
+  letter-spacing: -.055em;
+  word-break: keep-all;
+}
+
+.episodeIntroCopy > i {
+  width: 54px;
+  height: 3px;
+  margin: clamp(24px, 4vh, 38px) 0 clamp(22px, 3.5vh, 34px);
+  background: #bd4c40;
+}
+
+.episodeIntroCopy > strong {
+  max-width: 900px;
+  display: grid;
+  gap: 7px;
+  color: #aaa79e;
+  font: 650 clamp(14px, 1.6vw, 20px)/1.75 Georgia, 'Times New Roman', serif;
+  letter-spacing: -.015em;
+  word-break: keep-all;
+}
+
+.episodeIntroCopy > strong span {
+  display: block;
+  white-space: nowrap;
+}
+
+.introSkip {
+  position: absolute;
+  right: clamp(18px, 3.5vw, 54px);
+  bottom: clamp(18px, 3.5vw, 42px);
+  min-width: 64px;
+  min-height: 44px;
+  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  color: rgba(191, 190, 181, .46);
+  background: transparent;
+  font: 700 8px/1 ui-monospace, Consolas, monospace;
+  letter-spacing: .22em;
+  cursor: pointer;
+  animation: episodeTextRise 900ms 500ms cubic-bezier(.22, 1, .36, 1) both;
+}
+
+.introSkip:hover { color: rgba(230, 224, 211, .9); }
+.introSkip:focus-visible { outline: 2px solid #d4bd52; outline-offset: 4px; }
+
+@keyframes storyLabLaunch { 0% { transform: scaleX(0); } 72%, 100% { transform: scaleX(1); } }
+@keyframes episodeTextRise {
+  from { opacity: 0; transform: translateY(18px); filter: blur(1.5px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+@media (max-width: 1040px) {
+  .workspace { grid-template-columns: minmax(0, 1fr) 210px; padding-inline: 24px; }
+  .explanation { display: none; }
+  .deck { width: clamp(310px, 43vw, 398px); }
+}
+
+@media (max-width: 740px) {
+  .lab { min-height: 560px; grid-template-rows: 58px minmax(0, 1fr) 62px; }
+  .header, .footer { margin-inline: 12px; }
+  .header { grid-template-columns: 105px minmax(0, 1fr) 94px; }
+  .backControl { font-size: 7px; }
+  .identity > strong { display: none; }
+  .sampleBadge { padding: 7px 6px; font-size: 6px; text-align: center; }
+  .workspace { display: block; padding: 12px 10px 2px; }
+  .deckMap { display: none; }
+  .deckStage { height: 100%; }
+  .deck { width: min(82vw, 360px); height: min(70vh, 540px); max-height: calc(100dvh - 148px); }
+  .card { grid-template-rows: 38px minmax(155px, 49%) minmax(0, 1fr); }
+  .cardCopy { padding: 15px 18px 14px; }
+  .cardCopy h2 { font-size: clamp(19px, 5.6vw, 25px); }
+  .cardCopy > div { margin-block: 11px 9px; }
+  .cardCopy > p { font-size: 8px; }
+  .gestureHint { bottom: 0; }
+  .footer { padding-block: 8px; }
+  .status { justify-content: center; }
+  .status small { display: none; }
+  .scribbledNext { right: 16px; bottom: 14px; font-size: 18px; }
+  .gameStart { min-width: 150px; min-height: 44px; padding-inline: 13px; font-size: 10px; }
+  .episodeIntro { padding: 24px 22px 84px; }
+  .episodeIntroCopy { width: min(560px, 90vw); }
+  .episodeIntroCopy h1 { font-size: clamp(34px, 11vw, 52px); }
+  .episodeIntroCopy > strong { max-width: 520px; font-size: clamp(13px, 4vw, 16px); line-height: 1.68; }
+  .episodeIntroCopy > strong span { white-space: normal; }
+  .introSkip { right: 14px; bottom: 14px; }
+}
+
+@media (max-height: 700px) and (min-width: 741px) {
+  .lab { min-height: 580px; grid-template-rows: 58px minmax(0, 1fr) 72px; }
+  .deck { width: 330px; height: calc(100dvh - 162px); min-height: 415px; }
+  .card { grid-template-rows: 38px minmax(170px, 49%) minmax(0, 1fr); }
+  .cardCopy { padding: 14px 19px; }
+  .cardCopy h2 { font-size: 22px; }
+  .cardCopy > div { margin-block: 10px 8px; }
+  .gestureHint { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .deckMap li,
+  .status i { transition-duration: 120ms; }
+  .cardPast { transform: translate3d(-112%, 18px, 0) scale(.82); }
+  .cardNext { transform: translate3d(10px, 10px, 0) scale(.978); }
+  .cardAfter { transform: translate3d(-7px, 20px, 0) scale(.955); }
+  .isStarting::after { animation-duration: 30ms; }
+  .episodeIntro,
+  .episodeIntroCopy { transition-duration: 80ms; }
+  .episodeIntroCopy,
+  .introSkip { animation: none; }
+}
+
+.reduceMotion .card,
+.reduceMotion .deckMap li,
+.reduceMotion .status i { transition-duration: 120ms; }
+.reduceMotion .cardPast { transform: translate3d(-112%, 18px, 0) scale(.82); }
+.reduceMotion .cardNext { transform: translate3d(10px, 10px, 0) scale(.978); }
+.reduceMotion .cardAfter { transform: translate3d(-7px, 20px, 0) scale(.955); }
+.reduceMotion.isStarting::after { animation-duration: 30ms; }
+.reduceMotion .episodeIntro,
+.reduceMotion .episodeIntroCopy { transition-duration: 80ms; }
+.reduceMotion .episodeIntroCopy,
+.reduceMotion .introSkip { animation: none; }
